@@ -12,6 +12,8 @@ RUN mvn clean package -Dmaven.test.skip=true
 FROM eclipse-temurin:25-jre-alpine-3.23 AS runner
 WORKDIR /app
 
+RUN addgroup -S appgroup && adduser -S appuser -G appgroup
+USER appuser
 
 COPY --from=builder /app/target/*.jar app.jar
 
