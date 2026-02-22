@@ -2,7 +2,6 @@ FROM maven:3.9.12-eclipse-temurin-25-alpine AS builder
 
 WORKDIR /app
 
-# ffFROM eclipse-temurin:25-jre
 COPY pom.xml .
 RUN mvn dependency:go-offline
 
