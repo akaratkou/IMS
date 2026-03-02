@@ -6,6 +6,7 @@ import local.ims.task1.song_service.dto.DeletedIdsDto;
 import local.ims.task1.song_service.dto.ResourceIdDto;
 import local.ims.task1.song_service.dto.SongDto;
 import local.ims.task1.song_service.service.SongService;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
@@ -21,6 +22,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/songs")
 @Validated
+@Slf4j
 public class SongController {
 
     private final SongService songService;
@@ -31,18 +33,26 @@ public class SongController {
 
     @PostMapping
     public ResponseEntity<ResourceIdDto> createSong(@Valid @RequestBody SongDto songDto) {
-        return new ResponseEntity<>(new ResourceIdDto(songService.createSong(songDto)), HttpStatus.OK);
+        log.info("POST /songs - Creating song with resource ID: {}", songDto.getId());
+        ResourceIdDto result = new ResourceIdDto(songService.createSong(songDto));
+        log.info("POST /songs - Song created successfully with ID: {}", result.id());
+        return new ResponseEntity<>(result, HttpStatus.OK);
     }
 
     @GetMapping("/{id}")
     public ResponseEntity<SongDto> getSongById(@PathVariable @Min(value = 1, message = "Must be a positive integer") Integer id) {
+        log.info("GET /songs/{} - Retrieving song by ID", id);
         SongDto songDto = songService.getSongById(id);
+        log.info("GET /songs/{} - Song retrieved successfully: {}", id, songDto.getName());
         return new ResponseEntity<>(songDto, HttpStatus.OK);
     }
 
     @DeleteMapping
     public ResponseEntity<DeletedIdsDto> deleteSongs(@RequestParam String id) {
-        return new ResponseEntity<>(new DeletedIdsDto(songService.deleteSongs(id)), HttpStatus.OK);
+        log.info("DELETE /songs - Deleting songs with IDs: {}", id);
+        DeletedIdsDto result = new DeletedIdsDto(songService.deleteSongs(id));
+        log.info("DELETE /songs - Deleted {} song(s): {}", result.ids().size(), result.ids());
+        return new ResponseEntity<>(result, HttpStatus.OK);
     }
 }
 

@@ -35,8 +35,11 @@ services:
       - SPRING_DATASOURCE_PASSWORD=${RESOURCE_DB_PASSWORD}
       - METADATA_SERVICE_URL=http://song-service:8080
       - APP_PORT=8080
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=${EUREKA_CLIENT_SERVICE_URL_ZONE}
+      - EUREKA_INSTANCE_IP_ADDRESS=$${spring.cloud.client.ip-address}
     depends_on:
       - resource-db
+      - eureka-server
 
 
   song-service:
@@ -44,14 +47,28 @@ services:
       context: ./song-service
       dockerfile: Dockerfile
     ports:
-      - "${SONG_SERVICE_EXPOSE_PORT}:8080"
+      - "${SONG_SERVICE_EXPOSE_PORT_MIN}-${SONG_SERVICE_EXPOSE_PORT_MAX}:8080"
     restart: on-failure
     environment:
       - SPRING_DATASOURCE_URL=${SONG_DB_URL}
       - SPRING_DATASOURCE_USERNAME=${SONG_DB_USERNAME}
       - SPRING_DATASOURCE_PASSWORD=${SONG_DB_PASSWORD}
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=${EUREKA_CLIENT_SERVICE_URL_ZONE}
+      - SPRING_CLOUD_INETUTILS_IGNORED_INTERFACES=lo.*,veth.*,docker.*
+      - EUREKA_INSTANCE_IP_ADDRESS=$${spring.cloud.client.ip-address}
       - APP_PORT=8080
     depends_on:
       - song-db
       - resource-db
+      - eureka-server
 
+
+  eureka-server:
+    build:
+      context: ./eureka-server
+      dockerfile: Dockerfile
+    ports:
+      - "${EUREKA_SERVICE_EXPOSE_PORT}:8761"
+    restart: on-failure
+    environment:
+      - APP_PORT=8761

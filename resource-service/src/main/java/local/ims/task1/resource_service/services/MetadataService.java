@@ -1,20 +1,13 @@
 package local.ims.task1.resource_service.services;
 
+import feign.FeignException;
 import local.ims.task1.resource_service.dto.DeletedIdsDto;
 import local.ims.task1.resource_service.dto.SongMetadataDto;
+import local.ims.task1.resource_service.interfaces.MetadataServiceClient;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpMethod;
-import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.HttpClientErrorException;
-import org.springframework.web.client.HttpServerErrorException;
-import org.springframework.web.client.RestTemplate;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -24,53 +17,31 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class MetadataService {
 
-    @Value("${metadata.service.url}")
-    private String metadataServiceUrl;
-
-    private final RestTemplate restTemplate;
+    private final MetadataServiceClient metadataServiceClient;
 
 
     public String createSongMetadata(SongMetadataDto metadata) {
-        String url = metadataServiceUrl + "/songs";
-
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_JSON);
-
-        HttpEntity<SongMetadataDto> request = new HttpEntity<>(metadata, headers);
-
         try {
-            restTemplate.postForEntity(
-                    url,
-                    request,
-                    SongMetadataDto.class
-            );
+            metadataServiceClient.createSongMetadata(metadata);
             log.info("Successfully created song metadata: {}", metadata);
             return StringUtils.EMPTY;
-        } catch (HttpClientErrorException | HttpServerErrorException ex) {
-            log.error("Error creating song metadata: {} - {}", ex.getStatusCode(), ex.getResponseBodyAsString());
-            return ex.getResponseBodyAsString();
+        } catch (FeignException ex) {
+            log.error("Error creating song metadata: {} - {}", ex.status(), ex.contentUTF8());
+            return ex.contentUTF8();
         }
     }
 
     public List<Integer> deleteSongMetadata(String ids) {
-        String url = metadataServiceUrl + "/songs?id=" + ids;
         try {
-            ResponseEntity<DeletedIdsDto> response = restTemplate.exchange(
-                    url,
-                    HttpMethod.DELETE,
-                    null,
-                    DeletedIdsDto.class
-            );
-
-            DeletedIdsDto deletedIds = response.getBody();
-            log.info("Successfully deleted song metadata with ids: {}", ids);
-            if (deletedIds == null) {
+            DeletedIdsDto deletedIdsDto = metadataServiceClient.deleteSongMetadata(ids);
+            log.info("Successfully deleted song metadata with ids: {}", deletedIdsDto);
+            if (deletedIdsDto == null) {
                 log.warn("Received null response body when deleting song metadata with ids: {}", ids);
                 return List.of();
             }
-            return deletedIds.ids();
-        } catch (HttpClientErrorException | HttpServerErrorException ex) {
-            log.error("Error deleting song metadata: {} - {}", ex.getStatusCode(), ex.getResponseBodyAsString());
+            return deletedIdsDto.ids();
+        } catch (FeignException ex) {
+            log.error("Error deleting song metadata: {} - {}", ex.status(), ex.contentUTF8());
             return List.of();
         }
     }
